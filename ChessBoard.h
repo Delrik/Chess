@@ -4,6 +4,7 @@
 
 class ChessBoard {
 private:
+	bool firstPlayerTurn;
 	void swapPiece(pair<short, short> x, pair<short, short> y);
 	static bool sameSign(short x, short y) {
 		return (x < 0) == (y < 0);

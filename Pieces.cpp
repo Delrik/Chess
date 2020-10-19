@@ -28,7 +28,7 @@ Piece::Piece(short id)
 	this->name = getName(id);
 }
 
-vector<pair<short, short>> Piece::availableToKill()
+vector<pair<short, short>> Piece::availableToKill(bool firstPlayer)
 {
 	return availableMoves();
 }
@@ -45,7 +45,7 @@ King::King(bool isMoved) : Piece(1)
 	stepSize = 1;
 }
 
-vector<pair<short, short>> King::availableMoves()
+vector<pair<short, short>> King::availableMoves(bool firstPlayer)
 {
 	return { {0,-1},{0,1},{1,0},{-1,0},{1,1},{-1,-1},{-1,1},{1,-1} };
 }
@@ -55,7 +55,7 @@ Queen::Queen() : Piece(2)
 	stepSize = 8;
 }
 
-vector<pair<short, short>> Queen::availableMoves()
+vector<pair<short, short>> Queen::availableMoves(bool firstPlayer)
 {
 	return { {0,-1},{0,1},{1,0},{-1,0},{1,1},{-1,-1},{-1,1},{1,-1} };
 }
@@ -66,7 +66,7 @@ Rook::Rook(bool isMoved) : Piece(3)
 	stepSize = 8;
 }
 
-vector<pair<short, short>> Rook::availableMoves()
+vector<pair<short, short>> Rook::availableMoves(bool firstPlayer)
 {
 	return { {0,-1},{0,1},{1,0},{-1,0} };
 }
@@ -76,7 +76,7 @@ Bishop::Bishop() : Piece(4)
 	stepSize = 8;
 }
 
-vector<pair<short, short>> Bishop::availableMoves()
+vector<pair<short, short>> Bishop::availableMoves(bool firstPlayer)
 {
 	return { {1,1},{-1,-1},{-1,1},{1,-1} };
 }
@@ -86,7 +86,7 @@ Knight::Knight() : Piece(5)
 	stepSize = 1;
 }
 
-vector<pair<short, short>> Knight::availableMoves()
+vector<pair<short, short>> Knight::availableMoves(bool firstPlayer)
 {
 	return { {1,2},{2,1},{2,-1},{1,-2},{-1,-2},{-2,-1},{-2,1},{-1,2} };
 }
@@ -98,14 +98,16 @@ Pawn::Pawn(bool isMoved) : Piece(6)
 	else stepSize = 2;
 }
 
-vector<pair<short, short>> Pawn::availableMoves()
+vector<pair<short, short>> Pawn::availableMoves(bool firstPlayer)
 {
-	return { {1,0} };
+	if(firstPlayer) return { {1,0} };
+	return { {-1,0} };
 }
 
-vector<pair<short, short>> Pawn::availableToKill()
+vector<pair<short, short>> Pawn::availableToKill(bool firstPlayer)
 {
-	return { {1,1},{1,-1} };
+	if(firstPlayer) return { {1,1},{1,-1} };
+	return { {-1,-1},{-1,1} };
 }
 
 void Pawn::moveIt(pair<short, short> pos)

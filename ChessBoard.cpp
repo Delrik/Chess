@@ -20,22 +20,24 @@ bool ChessBoard::isLegitPair(pair<short, short> x)
 
 bool ChessBoard::movePiece(pair<short, short> from, pair<short, short> to)
 {
-	//isLegitTheMove & Finding the way.
+	//isItTheLegitMove & Finding the way.
 	if (!isLegitPair(from)) return false;
 	if (!isLegitPair(to)) return false;
 	bool legitMove = false;
 	if (from == to) return false;
 	auto it = pieces.find(from);
 	if (it == pieces.end()) return false;
+	if (board[from.first][from.second] > 0 && !firstPlayerTurn) return false;
+	if (board[from.first][from.second] < 0 && firstPlayerTurn) return false;
+	vector<pair<short, short>> moves;
+	if (board[to.first][to.second] != 0) {
+		if (sameSign(board[from.first][from.second], board[to.first][to.second])) return false;
+		moves = (*it).second->availableToKill(firstPlayerTurn);
+	}
+	else {
+		moves = (*it).second->availableMoves(firstPlayerTurn);
+	}
 	if ((*it).second->id != 5) {
-		vector<pair<short, short>> moves;
-		if (board[to.first][to.second] != 0) {
-			if (sameSign(board[from.first][from.second], board[to.first][to.second])) return false;
-			moves = (*it).second->availableToKill();
-		}
-		else {
-			moves = (*it).second->availableMoves();
-		}
 		pair<short, short> way;
 		if (abs(to.first - from.first) > (*it).second->stepSize || abs(to.second - from.second) > (*it).second->stepSize) return false;
 		for (pair<short, short> move : moves) {
@@ -70,6 +72,21 @@ bool ChessBoard::movePiece(pair<short, short> from, pair<short, short> to)
 		//Moving
 		swapPiece(from, to);
 		pieces[to]->moveIt(to);
+		firstPlayerTurn = !firstPlayerTurn;
+	}
+	else {
+		//isItTheLegitMove
+		for (pair<short, short> move : moves) {
+			if (to.first - from.first == move.first && to.second - from.second == move.second) {
+				legitMove = true;
+				break;
+			}
+		}
+		if (!legitMove) return false;
+		//Moving
+		swapPiece(from, to);
+		pieces[to]->moveIt(to);
+		firstPlayerTurn = !firstPlayerTurn;
 	}
 }
 
@@ -110,5 +127,15 @@ ChessBoard::ChessBoard()
 		for (int j = 0; j < 8; j++) {
 			board[i][j] = 0;
 		}
+	}
+	firstPlayerTurn = true;
+}
+
+ChessBoard::~ChessBoard()
+{
+	delete player1;
+	delete player2;
+	for (auto el : pieces) {
+		delete el.second;
 	}
 }
