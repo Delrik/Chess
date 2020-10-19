@@ -5,7 +5,7 @@ void ChessBoard::swapPiece(pair<short, short> x, pair<short, short> y)
 	board[y.first][y.second] = board[x.first][x.second];
 	board[x.first][x.second] = 0;
 	if (pieces.find(y) != pieces.end()) {
-		delete ((*pieces.find(y)).second);
+		//delete ((*pieces.find(y)).second);
 		pieces.erase(y);
 	}
 	pieces.insert(make_pair(y, (*pieces.find(x)).second));
@@ -15,6 +15,14 @@ void ChessBoard::swapPiece(pair<short, short> x, pair<short, short> y)
 bool ChessBoard::isLegitPair(pair<short, short> x)
 {
 	if (x.first > 7 || x.second > 7 || x.first < 0 || x.second < 0) return false;
+	return true;
+}
+
+bool ChessBoard::isPassant()
+{
+	if (lastMove.first == make_pair((short)-1, (short)-1) || lastMove.second == make_pair((short)-1, (short)-1)) return false;
+	if (pieces[lastMove.second]->id != 6) return false;
+	if (abs(lastMove.first.first - lastMove.second.first) != 2) return false;
 	return true;
 }
 
@@ -30,6 +38,22 @@ bool ChessBoard::movePiece(pair<short, short> from, pair<short, short> to)
 	if (board[from.first][from.second] > 0 && !firstPlayerTurn) return false;
 	if (board[from.first][from.second] < 0 && firstPlayerTurn) return false;
 	vector<pair<short, short>> moves;
+	pair<short, short> way;
+	//Looking for castling
+	if (isCastling(from, to)) {
+		if (to.second > from.second) way = { 0,1 }; else way = { 0,-1 };
+		//Looking for obstacles on the way
+		for (pair<short, short> i = { from.first + way.first,from.second + way.second }; i != to; i = { i.first + way.first,i.second + way.second }) {
+			if (board[i.first][i.second] != 0) return false;
+		}
+		swapPiece(from, { from.first,from.second + 2 * way.second });
+		pieces[{ from.first, from.second + 2 * way.second }]->moveIt({ from.first,from.second + 2 * way.second });
+		swapPiece(to, { from.first,from.second + way.second });
+		pieces[{ from.first, from.second + way.second }]->moveIt({ from.first,from.second + way.second });
+		firstPlayerTurn = !firstPlayerTurn;
+		lastMove = { from,to };
+		return true;
+	}
 	if (board[to.first][to.second] != 0) {
 		if (sameSign(board[from.first][from.second], board[to.first][to.second])) return false;
 		moves = (*it).second->availableToKill(firstPlayerTurn);
@@ -37,8 +61,32 @@ bool ChessBoard::movePiece(pair<short, short> from, pair<short, short> to)
 	else {
 		moves = (*it).second->availableMoves(firstPlayerTurn);
 	}
+	//Looking for en passant
+	if (isPassant() && (pieces[from]->id == 6)) {
+		if (firstPlayerTurn) {
+			if (to == make_pair((short)(lastMove.second.first + 1),lastMove.second.second)) {
+				swapPiece(lastMove.second, to);
+				pieces[to]->moveIt(to);
+				swapPiece(from, to);
+				pieces[to]->moveIt(to);
+				firstPlayerTurn = !firstPlayerTurn;
+				lastMove = { from,to };
+				return true;
+			}
+		}
+		else {
+			if (to == make_pair((short)(lastMove.second.first - 1), lastMove.second.second)) {
+				swapPiece(lastMove.second, to);
+				pieces[to]->moveIt(to);
+				swapPiece(from, to);
+				pieces[to]->moveIt(to);
+				firstPlayerTurn = !firstPlayerTurn;
+				lastMove = { from,to };
+				return true;
+			}
+		}
+	}
 	if ((*it).second->id != 5) {
-		pair<short, short> way;
 		if (abs(to.first - from.first) > (*it).second->stepSize || abs(to.second - from.second) > (*it).second->stepSize) return false;
 		for (pair<short, short> move : moves) {
 			if (from.first - to.first == 0) {
@@ -88,6 +136,19 @@ bool ChessBoard::movePiece(pair<short, short> from, pair<short, short> to)
 		pieces[to]->moveIt(to);
 		firstPlayerTurn = !firstPlayerTurn;
 	}
+	lastMove = { from,to };
+	return true;
+}
+
+bool ChessBoard::isCastling(pair<short, short> from, pair<short, short> to)
+{
+	if (board[from.first][from.second] == 1 && board[to.first][to.second] == 3 && pieces[from]->isMoved == false && pieces[to]->isMoved == false) {
+		return true;
+	}
+	if (board[from.first][from.second] == -1 && board[to.first][to.second] == -3 && pieces[from]->isMoved == false && pieces[to]->isMoved == false) {
+		return true;
+	}
+	return false;
 }
 
 ChessBoard::ChessBoard()
@@ -129,13 +190,15 @@ ChessBoard::ChessBoard()
 		}
 	}
 	firstPlayerTurn = true;
+	lastMove = { {-1,-1},{-1,-1} };
 }
 
 ChessBoard::~ChessBoard()
 {
 	delete player1;
 	delete player2;
+	/*
 	for (auto el : pieces) {
 		delete el.second;
-	}
+	}*/
 }

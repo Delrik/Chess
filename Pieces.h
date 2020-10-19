@@ -6,7 +6,6 @@ using namespace std;
 
 class Piece {
 protected:
-	static string getName(short id);
 public:
 	short id;
 	string name;
@@ -14,6 +13,7 @@ public:
 	bool isMoved;
 	pair<short, short> position;
 	Piece(short id);
+	static string getName(short id);
 	virtual vector<pair<short, short>> availableMoves(bool firstPlayer = true) = 0;
 	virtual vector<pair<short, short>> availableToKill(bool firstPlayer = true);
 	virtual void moveIt(pair<short,short> pos);
