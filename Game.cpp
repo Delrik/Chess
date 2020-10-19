@@ -88,6 +88,31 @@ void Game::redrawWindow(RenderWindow& window)
 	}
 	window.display();
 }
+void Game::drawPromotion(RenderWindow& window)
+{
+	RectangleShape button[4];
+	Text text[4];
+	Font font;
+	font.loadFromFile("fonts/comic.ttf");
+	text[0].setString("Queen");
+	text[1].setString("Rook");
+	text[2].setString("Bishop");
+	text[3].setString("Knight");
+	for (int i = 0; i < 4; i++) {
+		button[i].setSize(Vector2f(512, 128));
+		if (i % 2 == 0) button[i].setFillColor(Color::Black);
+		else button[i].setFillColor(Color::Yellow);
+		button[i].setPosition(0, 128 * i);
+		text[i].setFont(font);
+		text[i].setCharacterSize(100);
+		text[i].setFillColor(Color::Red);
+		text[i].setStyle(Text::Bold | Text::Underlined | Text::Italic);
+		text[i].setPosition(64, 128 * i);
+		window.draw(button[i]);
+		window.draw(text[i]);
+	}
+	window.display();
+}
 Game::Game()
 {
 	RenderWindow window(sf::VideoMode(512, 512), "Chess", Style::Titlebar | Style::Close);
@@ -103,6 +128,7 @@ Game::Game()
 	needToRedraw = true;
 
 	while (window.isOpen()) {
+		if (game.waitingForPromotion) drawPromotion(window);
 		if (needToRedraw) {
 			redrawWindow(window);
 			needToRedraw = false;
@@ -115,6 +141,10 @@ Game::Game()
 			}
 			if (event.type == Event::MouseButtonPressed) {
 				if (event.mouseButton.button == Mouse::Left) {
+					if (game.waitingForPromotion) {
+						game.promoteLastPawn(mousePos.y / 128 + 2);
+						needToRedraw = true;
+					}
 					if (!isSelected) {
 						selectCell({ mousePos.y / 64, mousePos.x / 64 });
 					}

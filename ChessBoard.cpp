@@ -5,11 +5,15 @@ void ChessBoard::swapPiece(pair<short, short> x, pair<short, short> y)
 	board[y.first][y.second] = board[x.first][x.second];
 	board[x.first][x.second] = 0;
 	if (pieces.find(y) != pieces.end()) {
-		//delete ((*pieces.find(y)).second);
 		pieces.erase(y);
 	}
 	pieces.insert(make_pair(y, (*pieces.find(x)).second));
 	pieces.erase(x);
+}
+
+bool ChessBoard::sameSign(short x, short y)
+{
+	return (x < 0) == (y < 0);
 }
 
 bool ChessBoard::isLegitPair(pair<short, short> x)
@@ -28,6 +32,7 @@ bool ChessBoard::isPassant()
 
 bool ChessBoard::movePiece(pair<short, short> from, pair<short, short> to)
 {
+	if (waitingForPromotion) return false;
 	//isItTheLegitMove & Finding the way.
 	if (!isLegitPair(from)) return false;
 	if (!isLegitPair(to)) return false;
@@ -39,10 +44,10 @@ bool ChessBoard::movePiece(pair<short, short> from, pair<short, short> to)
 	if (board[from.first][from.second] < 0 && firstPlayerTurn) return false;
 	vector<pair<short, short>> moves;
 	pair<short, short> way;
-	//Looking for castling
+	//Looking for a castling
 	if (isCastling(from, to)) {
 		if (to.second > from.second) way = { 0,1 }; else way = { 0,-1 };
-		//Looking for obstacles on the way
+		//Looking for an obstacles on the way
 		for (pair<short, short> i = { from.first + way.first,from.second + way.second }; i != to; i = { i.first + way.first,i.second + way.second }) {
 			if (board[i.first][i.second] != 0) return false;
 		}
@@ -120,6 +125,7 @@ bool ChessBoard::movePiece(pair<short, short> from, pair<short, short> to)
 		//Moving
 		swapPiece(from, to);
 		pieces[to]->moveIt(to);
+		if (pieces[to]->id == 6 && (to.first == 0 || to.first == 7)) waitingForPromotion = true;
 		firstPlayerTurn = !firstPlayerTurn;
 	}
 	else {
@@ -149,6 +155,31 @@ bool ChessBoard::isCastling(pair<short, short> from, pair<short, short> to)
 		return true;
 	}
 	return false;
+}
+
+void ChessBoard::promoteLastPawn(short id)
+{
+	switch (id)
+	{
+	case 2:
+		pieces[lastMove.second] = new Queen();
+		break;
+	case 3:
+		pieces[lastMove.second] = new Rook();
+		break;
+	case 4:
+		pieces[lastMove.second] = new Bishop();
+		break;
+	case 5:
+		pieces[lastMove.second] = new Knight();
+		break;
+	default:
+		throw "Wrong id in the promotion";
+		break;
+	}
+	if (!firstPlayerTurn)board[lastMove.second.first][lastMove.second.second] = pieces[lastMove.second]->id;
+	else board[lastMove.second.first][lastMove.second.second] = -pieces[lastMove.second]->id;
+	waitingForPromotion = false;
 }
 
 ChessBoard::ChessBoard()
@@ -191,14 +222,11 @@ ChessBoard::ChessBoard()
 	}
 	firstPlayerTurn = true;
 	lastMove = { {-1,-1},{-1,-1} };
+	waitingForPromotion = false;
 }
 
 ChessBoard::~ChessBoard()
 {
 	delete player1;
 	delete player2;
-	/*
-	for (auto el : pieces) {
-		delete el.second;
-	}*/
 }

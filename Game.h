@@ -19,6 +19,7 @@ private:
 	void loadSprites();
 	void redrawWindow(RenderWindow& window);
 	ChessBoard game;
+	void drawPromotion(RenderWindow& window);
 public:
 	Game();
 };
