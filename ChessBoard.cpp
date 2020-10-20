@@ -11,9 +11,19 @@ void ChessBoard::swapPiece(pair<short, short> x, pair<short, short> y)
 	pieces.erase(x);
 }
 
+int ChessBoard::sign(int value)
+{
+	if (value > 0) return 1;
+	if (value < 0) return -1;
+	return 0;
+}
+
 bool ChessBoard::sameSign(short x, short y)
 {
 	return (x < 0) == (y < 0);
+}
+bool ChessBoard::difSign(short x, short y) {
+	return (x < 0 && y>0) || (x > 0 && y < 0);
 }
 
 bool ChessBoard::isLegitPair(pair<short, short> x)
@@ -32,6 +42,8 @@ bool ChessBoard::isPassant()
 
 bool ChessBoard::movePiece(pair<short, short> from, pair<short, short> to)
 {
+	
+	//
 	if (isGameEnded != 0) throw string("Game over.");
 	if (waitingForPromotion) throw string("Promote your pawn at the end of the board please.");
 	//isItTheLegitMove & Finding the way.
@@ -43,19 +55,25 @@ bool ChessBoard::movePiece(pair<short, short> from, pair<short, short> to)
 	if (it == pieces.end()) throw string("There are no piece");
 	if (board[from.first][from.second] > 0 && !firstPlayerTurn) throw string("This is not your piece. Choose another color.");
 	if (board[from.first][from.second] < 0 && firstPlayerTurn) throw string("This is not your piece. Choose another color.");
-	vector<pair<short, short>> moves;
-	pair<short, short> way;
+
+	vector<pair<short,short>> availableMovesForCurrentPiece = availableToMove(from);
+	if (std::find(availableMovesForCurrentPiece.begin(), availableMovesForCurrentPiece.end(), to) == availableMovesForCurrentPiece.end()) throw string("Check on you. Defend your king.");
+	/*
 	short isCheck = willBeCheck(make_pair(from, to));
 	if ((isCheck == 1 || isCheck == 2) && firstPlayerTurn) throw string("Checkmate on you. Defend your king.");
 	if ((isCheck == -1 || isCheck == 2) && !firstPlayerTurn) throw string("Checkmate on you. Defend your king.");
+	*/
+	//
+	vector<pair<short, short>> moves;
+	pair<short, short> way;
+	short isCheck;
 	isCheck = willBeCheck(make_pair(from, from));
 	//Looking for a castling
 	if (isCastling(from, to) && !(firstPlayerTurn && (isCheck == 1 || isCheck == 2)) && !(!firstPlayerTurn && (isCheck == -1 || isCheck == 2))) {
 		if (to.second > from.second) way = { 0,1 }; else way = { 0,-1 };
 		//Looking for an obstacles on the way
-		for (pair<short, short> i = { from.first + way.first,from.second + way.second }; i != to; i = { i.first + way.first,i.second + way.second }) {
-			if (board[i.first][i.second] != 0) throw string("You cannot do the castling when there are pieces on king's/rook's way.");
-		}
+		if (fromToObstacles(from, to, way)) throw string("You cannot do the castling when there are pieces on king's/rook's way.");
+		
 		isCheck = willBeCheck(make_pair(from, make_pair(from.first, from.second + 2 * way.second)));
 		if ((firstPlayerTurn && isCheck != 1 && isCheck != 2) || (!firstPlayerTurn && isCheck != -1 && isCheck != 2)) {
 			swapPiece(from, { from.first,from.second + 2 * way.second });
@@ -67,7 +85,7 @@ bool ChessBoard::movePiece(pair<short, short> from, pair<short, short> to)
 			isCheckMate();
 			return true;
 		}
-		throw string("You cannot do the castling when will be putted into checkmate after the it.");
+		throw string("You cannot do the castling because after you'll be putted into checkmate");
 	}
 	if (board[to.first][to.second] != 0) {
 		if (sameSign(board[from.first][from.second], board[to.first][to.second])) throw string("You cannot beat your own piece.");
@@ -131,9 +149,8 @@ bool ChessBoard::movePiece(pair<short, short> from, pair<short, short> to)
 		}
 		if (!legitMove) throw string("Selected piece cannot move in this direction.\nThe king moves exactly one square horizontally, vertically, or diagonally. A special move with the king known as castling is allowed only once per player, per game\nA rook moves any number of vacant squares horizontally or vertically. It also is moved when castling.\nA bishop moves any number of vacant squares diagonally.\nThe queen moves any number of vacant squares horizontally, vertically, or diagonally.\nA pawn moves straight forward one square, if that square is vacant. If it has not yet moved, a pawn also has the option of moving two squares straight forward, provided both squares are vacant. Pawns cannot move backwards.\nPawns are the only pieces that capture differently from how they move. A pawn can capture an enemy piece on either of the two squares diagonally in front of the pawn (but cannot move to those squares if they are vacant).");
 		//Looking for obstacles on the way
-		for (pair<short, short> i = { from.first + way.first,from.second + way.second }; i != to; i = { i.first + way.first,i.second + way.second }) {
-			if (board[i.first][i.second] != 0) throw string("You cannot move your piece through other pieces.");
-		}
+		if (fromToObstacles(from, to, way)) throw string("You cannot move your piece through other pieces.");
+
 		//Moving
 		swapPiece(from, to);
 		pieces[to]->moveIt(to);
@@ -168,6 +185,99 @@ bool ChessBoard::isCastling(pair<short, short> from, pair<short, short> to)
 		return true;
 	}
 	return false;
+}
+
+bool ChessBoard::fromToObstacles(pair<short, short> from, pair<short, short> to, pair<short, short> way)
+{
+	for (pair<short, short> i = { from.first + way.first,from.second + way.second }; i != to; i = { i.first + way.first,i.second + way.second }) {
+		if (board[i.first][i.second] != 0) return true;
+	}
+	return false;
+}
+
+vector<pair<short, short>> ChessBoard::availableToMove(pair<short, short> piece)
+{
+	if (firstPlayerTurn && board[piece.first][piece.second] <= 0) return {};
+	if ((!firstPlayerTurn && board[piece.first][piece.second] >= 0)) return {};
+	vector<pair<short, short>> result;
+	bool firstPlayerPiece = (board[piece.first][piece.second] > 0);
+	int stepSize;
+	//Available moves for a pawn
+	if (pieces[piece]->id == 6) {
+		stepSize = pieces[piece]->stepSize;
+		for (auto move : pieces[piece]->availableMoves(firstPlayerPiece)) {
+			for (int i = 1; i <= stepSize; i++) {
+				if (!isLegitPair(make_pair(piece.first + move.first * i, piece.second + move.second * i))) break;
+				if (board[piece.first + move.first * i][piece.second + move.second * i] != 0) break;
+				if (willBeCheck(make_pair(piece, make_pair(piece.first + move.first * i, piece.second + move.second * i)))) continue;
+				result.push_back(make_pair(piece.first + move.first * i, piece.second + move.second * i));
+			}
+		}
+		stepSize = 1;
+		for (auto move : pieces[piece]->availableToKill(firstPlayerPiece)) {
+			for (int i = 1; i <= stepSize; i++) {
+				if (board[piece.first][piece.second] != 0) {
+					if (!isLegitPair(make_pair(piece.first + move.first * i, piece.second + move.second * i))) break;
+					if (!sameSign(board[piece.first][piece.second], board[piece.first + move.first * i][piece.second + move.second * i])) {
+						if (willBeCheck(make_pair(piece, make_pair(piece.first + move.first * i, piece.second + move.second * i)))) break;
+						result.push_back(make_pair(piece.first + move.first * i, piece.second + move.second * i));
+					}
+					break;
+				}
+				
+			}
+		}
+		if (isPassant()) {
+			int passantBuf;
+			if (firstPlayerPiece) {
+				if (piece.first == lastMove.second.first && abs(piece.second - lastMove.second.second) == 1) {
+					passantBuf = board[lastMove.second.first][lastMove.second.second];
+					board[lastMove.second.first][lastMove.second.second] = 0;
+					if (!willBeCheck(make_pair(piece, make_pair(piece.first + 1, lastMove.second.second))))
+						result.push_back(make_pair(piece.first + 1, lastMove.second.second));
+					board[lastMove.second.first][lastMove.second.second] = passantBuf;
+				}
+			}
+			else {
+				if (piece.first == lastMove.second.first && abs(piece.second - lastMove.second.second) == 1) {
+					passantBuf = board[lastMove.second.first][lastMove.second.second];
+					board[lastMove.second.first][lastMove.second.second] = 0;
+					if (!willBeCheck(make_pair(piece, make_pair(piece.first - 1, lastMove.second.second))))
+						result.push_back(make_pair(piece.first - 1, lastMove.second.second));
+					board[lastMove.second.first][lastMove.second.second] = passantBuf;
+				}
+			}
+		}
+	}
+	//Available moves for a knight
+	else if (pieces[piece]->id == 5) {
+		for (auto move : pieces[piece]->availableMoves()) {
+			if (!isLegitPair(make_pair(piece.first + move.first, piece.second + move.second))) continue;
+			if (board[piece.first + move.first][piece.second + move.second] == 0 || difSign(board[piece.first][piece.second], board[piece.first + move.first][piece.second + move.second])) {
+				if (!willBeCheck(make_pair(piece, make_pair(piece.first + move.first, piece.second + move.second))))
+					result.push_back(make_pair(piece.first + move.first, piece.second + move.second));
+			}
+		}
+	}
+	//Available moves for another pieces
+	else {
+		for (auto move : pieces[piece]->availableMoves()) {
+			for (int i = 1; i <= pieces[piece]->stepSize;i++) {
+				if (!isLegitPair(make_pair(piece.first + move.first * i, piece.second + move.second * i))) break;
+				if (board[piece.first + move.first * i][piece.second + move.second * i] == 0) {
+					if (willBeCheck(make_pair(piece, make_pair(piece.first + move.first * i, piece.second + move.second * i)))) continue;
+					result.push_back(make_pair(piece.first + move.first * i, piece.second + move.second * i));
+				}
+				else {
+					if (!sameSign(board[piece.first][piece.second], board[piece.first + move.first * i][piece.second + move.second * i])) 
+						result.push_back(make_pair(piece.first + move.first * i, piece.second + move.second * i));
+					break;
+
+				}
+			}
+		}
+	}
+	return result;
 }
 
 short ChessBoard::willBeCheck(pair<pair<short, short>, pair<short, short>> m)
@@ -211,6 +321,17 @@ short ChessBoard::willBeCheck(pair<pair<short, short>, pair<short, short>> m)
 
 short ChessBoard::isCheckMate()
 {
+	vector<pair<short, short>> allMoves, buf;
+	for (auto piece : pieces) {
+		buf = availableToMove(piece.first);
+		allMoves.insert(allMoves.end(), buf.begin(), buf.end());
+	}
+	if (allMoves.size() == 0) {
+		isGameEnded = 1;
+		return 1;
+	}
+	return 0;
+	/*
 	short check = willBeCheck(make_pair(make_pair(0, 0), make_pair(0, 0)));
 	short checkBuf;
 	short killStepSize;
@@ -291,6 +412,7 @@ short ChessBoard::isCheckMate()
 		}
 	}
 	return 0;
+	*/
 }
 
 void ChessBoard::promoteLastPawn(short id)
