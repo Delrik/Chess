@@ -11,6 +11,7 @@ private:
 	static bool sameSign(short x, short y);
 	static bool isLegitPair(pair<short, short> x);
 	bool isPassant();
+	bool isPassant(pair<short, short> pawn);
 	bool isCastling(pair<short, short> from, pair<short, short> to);
 	map<pair<short, short>, Piece*> pieces;
 	bool fromToObstacles(pair<short, short> from, pair<short, short> to, pair<short, short> way);

@@ -14,21 +14,15 @@ void Game::setDefaultColorForCell(pair<short, short> cell)
 
 void Game::selectCell(pair<short, short> cell)
 {
-	if (game.firstPlayerTurn) {
-		if (game.board[cell.first][cell.second] > 0) {
+	if ((game.firstPlayerTurn && game.board[cell.first][cell.second] > 0) || (!game.firstPlayerTurn && game.board[cell.first][cell.second] < 0)) {
 			selectedCell = cell;
 			isSelected = true;
 			rectangles[cell.first][cell.second].setFillColor(Color::Magenta);
+			for (pair<short, short> p : game.availableToMove(cell)) {
+				rectangles[p.first][p.second].setFillColor(Color(220, 220, 220));
+				changedCells.push_back(p);
+			}
 			needToRedraw = true;
-		}
-	}
-	else {
-		if (game.board[cell.first][cell.second] < 0) {
-			selectedCell = cell;
-			isSelected = true;
-			rectangles[cell.first][cell.second].setFillColor(Color::Magenta);
-			needToRedraw = true;
-		}
 	}
 }
 
@@ -179,6 +173,10 @@ Game::Game()
 							MessageBoxA(NULL, ex.c_str(), "Error", MB_OK);
 						}
 						setDefaultColorForCell(selectedCell);
+						for (pair<short, short> p : changedCells) {
+							setDefaultColorForCell(p);
+						}
+						changedCells.clear();
 						isSelected = false;
 						selectedCell = { -1,-1 };
 						needToRedraw = true;
@@ -187,6 +185,10 @@ Game::Game()
 				if (event.mouseButton.button == Mouse::Right) {
 					if (isSelected) {
 						setDefaultColorForCell(selectedCell);
+						for (pair<short, short> p : changedCells) {
+							setDefaultColorForCell(p);
+						}
+						changedCells.clear();
 						isSelected = false;
 						selectedCell = { -1,-1 };
 						needToRedraw = true;

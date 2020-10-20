@@ -17,6 +17,7 @@ private:
 	bool needToRedraw;
 	void initBoard();
 	void loadTextures();
+	vector<pair<short, short>> changedCells;
 	void loadSprites();
 	void redrawWindow(RenderWindow& window);
 	void drawVictory(RenderWindow& window);
