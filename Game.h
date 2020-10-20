@@ -1,6 +1,7 @@
 #pragma once
 #include "ChessBoard.h"
 #include <SFML/Graphics.hpp>
+#include <Windows.h>
 
 using namespace sf;
 
@@ -18,6 +19,7 @@ private:
 	void loadTextures();
 	void loadSprites();
 	void redrawWindow(RenderWindow& window);
+	void drawVictory(RenderWindow& window);
 	ChessBoard game;
 	void drawPromotion(RenderWindow& window);
 public:

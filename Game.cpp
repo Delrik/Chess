@@ -88,6 +88,27 @@ void Game::redrawWindow(RenderWindow& window)
 	}
 	window.display();
 }
+void Game::drawVictory(RenderWindow& window)
+{
+	RectangleShape rect;
+	rect.setFillColor(Color::Red);
+	rect.setSize(Vector2f(512, 512));
+	rect.setPosition(0, 0);
+	Font font;
+	font.loadFromFile("fonts/comic.ttf");
+	Text text;
+	text.setFont(font);
+	text.setCharacterSize(64);
+	text.setFillColor(Color::Green);
+	text.setStyle(Text::Bold | Text::Underlined | Text::Italic);
+	text.setPosition(0, 0);
+	string txt = "GAME OVER!\n";
+	if (game.isGameEnded == 1) txt += "Player #1 won"; else txt += "Player #2 won";
+	text.setString(txt);
+	window.draw(rect);
+	window.draw(text);
+	window.display();
+}
 void Game::drawPromotion(RenderWindow& window)
 {
 	RectangleShape button[4];
@@ -128,6 +149,7 @@ Game::Game()
 	needToRedraw = true;
 
 	while (window.isOpen()) {
+		if (game.isGameEnded != 0) drawVictory(window);
 		if (game.waitingForPromotion) drawPromotion(window);
 		if (needToRedraw) {
 			redrawWindow(window);
@@ -139,6 +161,7 @@ Game::Game()
 			if (event.type == Event::Closed) {
 				window.close();
 			}
+			if (game.isGameEnded != 0) continue;
 			if (event.type == Event::MouseButtonPressed) {
 				if (event.mouseButton.button == Mouse::Left) {
 					if (game.waitingForPromotion) {
@@ -149,7 +172,12 @@ Game::Game()
 						selectCell({ mousePos.y / 64, mousePos.x / 64 });
 					}
 					else {
-						if (game.movePiece(selectedCell, { mousePos.y / 64, mousePos.x / 64 }));
+						try {
+							game.movePiece(selectedCell, { mousePos.y / 64, mousePos.x / 64 });
+						}
+						catch(string ex){
+							MessageBoxA(NULL, ex.c_str(), "Error", MB_OK);
+						}
 						setDefaultColorForCell(selectedCell);
 						isSelected = false;
 						selectedCell = { -1,-1 };

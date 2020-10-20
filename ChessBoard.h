@@ -12,7 +12,11 @@ private:
 	bool isPassant();
 	bool isCastling(pair<short, short> from, pair<short, short> to);
 	map<pair<short, short>, Piece*> pieces;
+	//Will be the check if you're going to do the move m(-1 - check to the first player, 0 - no check, 1 - check to the second player, 2 - check for both players)
+	short willBeCheck(pair<pair<short,short>,pair<short,short>> m);
+	short isCheckMate();
 public:
+	short isGameEnded;
 	bool waitingForPromotion;
 	void promoteLastPawn(short id);
 	bool firstPlayerTurn;
